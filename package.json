@@ -1,0 +1,20 @@
+{
+  "name": "real-time_chat_room",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Rubayed Ahmed Foysal",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "redis": "^6.3.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5"
+  }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat Room</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <main class="app">
+        <header class="app-header">
+            <h1>Chat Room</h1>
+            <p id="serverStatus" class="serverStatus-disconnect">Disconnect</p>
+            <div class="conn-controls">
+                <button id="connect-server">Connect</button>
+                <button id="disconnect-server">Disconnect</button>
+            </div>
+        </header>
+
+        <section class="chat-card">
+            <ul id="messageContainer" class="message-list">
+            </ul>
+
+            <footer class="composer">
+                <div class="input-wrap">
+                    <input type="text" id="message" placeholder="Type a message…">
+                </div>
+                <button id="submit" type="submit" onEnt>Send</button>
+            </footer>
+        </section>
+    </main>
+
+    <script>
+        // TODO: user signup/login and authentication (show a login form first,
+        //       connect the WebSocket only after a valid session, include the
+        //       auth token in the connection URL or first message)
+
+        // Element references (ids match the HTML above)
+        const button = document.querySelector("#submit");
+        const messField = document.querySelector("#message");
+        const list = document.querySelector("#messageContainer");
+        const status = document.querySelector("#serverStatus");
+        const connectBtn = document.getElementById("connect-server");
+        const disconnectBtn = document.getElementById("disconnect-server");
+
+        // Id the server assigned to this connection (set by the "init" frame);
+        // used to mark our own messages with the .outgoing CSS class
+        let myId;
+
+        // Page is served on the same port the WebSocket server listens on
+        const PORT = window.location.port;
+
+        // Socket starts undefined; created only when Connect is clicked
+        let socket;
+
+        // Connect to the WebSocket server (no-op if already connected/connecting)
+        const connectServer = () => {
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                console.log("Already connected or connecting");
+                return;
+            }
+
+            // Flip status badge to the "connected" look (optimistic until open fires)
+            status.classList.remove("serverStatus-disconnect");
+            status.classList.add("serverStatus-connect");
+
+            socket = new WebSocket(`ws://localhost:${PORT}`);
+
+            socket.addEventListener("open", () => {
+                console.log("Connected to Server.")
+                status.innerText = "Connected"
+            })
+
+            // Frames arrive as JSON:
+            //   { type: "init", socketId }      -> remember our own id, don't render
+            //   { socketId, message }           -> append a chat bubble
+            socket.addEventListener("message", (event) => {
+                const parsedData = JSON.parse(event.data);
+
+                // Handshake frame from the server: store our id
+                if (parsedData.type === "init") {
+                    myId = parsedData.socketId;
+                    return;
+                }
+
+                // Build the bubble; innerText (not innerHTML) avoids XSS
+                const li = document.createElement("li");
+                li.innerText = parsedData.message;
+
+                // Server broadcasts to everyone including us, so compare ids
+                // to decide incoming (left) vs outgoing (right) styling
+                if (parsedData.socketId === myId) {
+                    li.classList.add("outgoing");
+                }
+
+                list.append(li)
+            });
+
+            socket.addEventListener("close", () => {
+                console.log("Disconnected from Server.")
+            })
+
+            socket.addEventListener("error", (error) => {
+                console.log("WebSocket Error:", error)
+            })
+        }
+
+        // Gracefully close the connection and reset the status badge
+        const disconnectServer = () => {
+            if (
+                socket &&
+                (socket.readyState === WebSocket.OPEN ||
+                    socket.readyState === WebSocket.CONNECTING)
+            ) {
+                status.classList.remove("serverStatus-connect");
+                status.classList.add("serverStatus-disconnect");
+                status.innerText = "Disconnected"
+                socket.close(1000, "Client disconnected manually");
+            }
+        }
+
+        // Send handler registered ONCE at top level (never inside "open",
+        // otherwise every reconnect would stack another listener)
+        const sendMessage = () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(messField.value);
+                messField.value = "";
+            }
+        };
+        button.addEventListener("click", sendMessage);
+
+        // Enter key sends too
+        messField.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        // Wire up the connection controls
+        connectBtn.addEventListener("click", connectServer);
+        disconnectBtn.addEventListener("click", disconnectServer);
+    </script>
+
+</body>
+
+</html>
