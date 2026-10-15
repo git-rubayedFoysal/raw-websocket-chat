@@ -33,12 +33,17 @@ await subscriber.subscribe(REDIS_CHANNEL, (message) => {
   });
 });
 
-ws.on("connection", (socket) => {
+ws.on("connection", (socket, req) => {
   // Assign a unique id to this connection and tell the client what it is
   // (client uses it to mark its own messages as "outgoing")
   const socketId = crypto.randomUUID();
+
+  // Username comes from the query string when the client opens the socket
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const username = url.searchParams.get("username") || "Anonymous";
+
   socket.send(JSON.stringify({ type: "init", socketId }));
-  console.log("New connection established.");
+  console.log(`New connection established: ${username} (${socketId}).`);
 
   // Incoming chat message: publish to Redis so ALL instances (including this
   // one) broadcast it to their clients. try/catch keeps a Redis outage from
@@ -49,6 +54,7 @@ ws.on("connection", (socket) => {
         REDIS_CHANNEL,
         JSON.stringify({
           socketId,
+          username,
           message: message.toString(),
         }),
       );

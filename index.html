@@ -14,6 +14,7 @@
             <h1>Chat Room</h1>
             <p id="serverStatus" class="serverStatus-disconnect">Disconnect</p>
             <div class="conn-controls">
+                <input type="text" id="username" placeholder="Your name…" maxlength="20">
                 <button id="connect-server">Connect</button>
                 <button id="disconnect-server">Disconnect</button>
             </div>
@@ -44,6 +45,7 @@
         const status = document.querySelector("#serverStatus");
         const connectBtn = document.getElementById("connect-server");
         const disconnectBtn = document.getElementById("disconnect-server");
+        const nameField = document.getElementById("username");
 
         // Id the server assigned to this connection (set by the "init" frame);
         // used to mark our own messages with the .outgoing CSS class
@@ -62,11 +64,19 @@
                 return;
             }
 
+            const username = nameField.value.trim();
+            if (!username) {
+                alert("Please enter your name before connecting.");
+                nameField.focus();
+                return;
+            }
+
             // Flip status badge to the "connected" look (optimistic until open fires)
+            nameField.disabled = true;
             status.classList.remove("serverStatus-disconnect");
             status.classList.add("serverStatus-connect");
 
-            socket = new WebSocket(`ws://localhost:${PORT}`);
+            socket = new WebSocket(`ws://localhost:${PORT}?username=${encodeURIComponent(username)}`);
 
             socket.addEventListener("open", () => {
                 console.log("Connected to Server.")
@@ -75,7 +85,7 @@
 
             // Frames arrive as JSON:
             //   { type: "init", socketId }      -> remember our own id, don't render
-            //   { socketId, message }           -> append a chat bubble
+            //   { socketId, username, message } -> append a chat bubble
             socket.addEventListener("message", (event) => {
                 const parsedData = JSON.parse(event.data);
 
@@ -85,9 +95,19 @@
                     return;
                 }
 
-                // Build the bubble; innerText (not innerHTML) avoids XSS
+                // Build the bubble with sender name outside the bubble;
+                // textContent (not innerHTML) avoids XSS
                 const li = document.createElement("li");
-                li.innerText = parsedData.message;
+
+                const name = document.createElement("span");
+                name.className = "sender-name";
+                name.textContent = parsedData.username;
+
+                const bubble = document.createElement("div");
+                bubble.className = "bubble";
+                bubble.textContent = parsedData.message;
+
+                li.append(name, bubble);
 
                 // Server broadcasts to everyone including us, so compare ids
                 // to decide incoming (left) vs outgoing (right) styling
@@ -100,6 +120,7 @@
 
             socket.addEventListener("close", () => {
                 console.log("Disconnected from Server.")
+                nameField.disabled = false;
             })
 
             socket.addEventListener("error", (error) => {

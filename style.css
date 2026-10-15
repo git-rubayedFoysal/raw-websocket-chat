@@ -82,6 +82,38 @@ body {
   gap: 10px;
 }
 
+#username {
+  width: 140px;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-pill);
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  backdrop-filter: blur(6px);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+#username::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#username:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+#username:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
 .conn-controls button {
   appearance: none;
   border: none;
@@ -227,21 +259,45 @@ body {
 
 .message-list li {
   max-width: 75%;
-  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-wrap: break-word;
+  align-self: flex-start;
+}
+
+.bubble {
+  padding: 8px 13px;
   border-radius: 16px 16px 16px 4px;
   background: var(--surface);
   border: 1px solid rgba(148, 163, 184, 0.12);
   line-height: 1.45;
-  word-wrap: break-word;
+}
+
+.sender-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.65;
+  letter-spacing: 0.03em;
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 .message-list li.outgoing {
   align-self: flex-end;
+}
+
+li.outgoing .bubble {
   background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
   border: 1px solid rgba(99, 102, 241, 0.35);
   border-radius: 16px 16px 4px 16px;
   color: #fff;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+}
+
+.outgoing .sender-name {
+  opacity: 0.8;
+  text-align: right;
 }
 
 /* ---------- Composer ---------- */
